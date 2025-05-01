@@ -3,1125 +3,363 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Muxer MP4, Audio et Sous-titres</title>
+    <title>Muxer Audio/Vidéo</title>
     <style>
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+
         body {
             background-color: #f5f5f5;
+            color: #333;
             padding: 20px;
             max-width: 800px;
             margin: 0 auto;
+            line-height: 1.6;
         }
+
         h1 {
             text-align: center;
-            margin-bottom: 20px;
-            color: #333;
+            margin-bottom: 30px;
+            color: #2c3e50;
         }
+
         .container {
-            background-color: #fff;
-            border-radius: 8px;
+            background: white;
+            border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
         }
-        .section {
+
+        .input-group {
             margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #e0e0e0;
-            border-radius: 5px;
         }
-        .section-title {
-            margin-bottom: 10px;
+
+        .input-label {
+            display: block;
+            margin-bottom: 8px;
             font-weight: bold;
-            color: #555;
         }
+
         .file-input {
             width: 100%;
-            margin-bottom: 10px;
-        }
-        #audioTracks, #subtitleTracks {
-            margin-top: 10px;
-        }
-        .audio-track, .subtitle-track {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
             padding: 10px;
             background-color: #f9f9f9;
+            border: 1px solid #ddd;
             border-radius: 5px;
         }
-        .subtitle-track {
-            background-color: #f0f8ff;
-        }
-        .track-info {
-            flex-grow: 1;
-            margin-right: 10px;
-        }
-        .track-name {
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
             font-weight: bold;
-            word-break: break-all;
-        }
-        .track-meta {
-            font-size: 0.8em;
-            color: #666;
-        }
-        .track-language {
-            width: 80px;
-            padding: 5px;
-        }
-        .remove-track {
-            background-color: #ff5555;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-        .add-track {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 15px;
-            cursor: pointer;
             margin-top: 10px;
+            width: 100%;
+            transition: background-color 0.3s;
         }
-        .add-subtitle {
-            background-color: #3F51B5;
-            color: white;
+
+        button:hover {
+            background-color: #2980b9;
         }
+
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
         .progress-container {
             width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 4px;
-            margin-top: 10px;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            margin-top: 20px;
             display: none;
         }
+
         .progress-bar {
             height: 20px;
             background-color: #4CAF50;
-            border-radius: 4px;
+            border-radius: 5px;
             width: 0%;
             text-align: center;
             line-height: 20px;
             color: white;
         }
-        .buttons {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
+
+        .status {
+            margin-top: 10px;
+            font-style: italic;
+            text-align: center;
+            color: #7f8c8d;
         }
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn-primary {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .btn-secondary {
-            background-color: #607d8b;
-            color: white;
-        }
-        .disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        #status {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 4px;
-            background-color: #f1f1f1;
+
+        .output-container {
+            margin-top: 20px;
             display: none;
         }
-        #optionsToggle {
-            display: block;
-            margin-bottom: 10px;
-            color: #4CAF50;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        #advancedOptions {
-            display: none;
-            padding: 10px;
-            background-color: #f9f9f9;
+
+        .preview {
+            width: 100%;
             border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        .option-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        .option-row label {
-            flex: 0 0 200px;
-        }
-        .option-row input, .option-row select {
-            flex: 1;
-            padding: 5px;
-        }
-        .tab-container {
             margin-bottom: 10px;
         }
-        .tab-buttons {
-            display: flex;
-            border-bottom: 1px solid #ddd;
+
+        .download-btn {
+            background-color: #27ae60;
         }
-        .tab-button {
-            padding: 8px 16px;
-            background-color: #f1f1f1;
-            border: none;
-            cursor: pointer;
-            transition: 0.3s;
-            font-weight: bold;
+
+        .download-btn:hover {
+            background-color: #2ecc71;
         }
-        .tab-button:hover {
-            background-color: #ddd;
-        }
-        .tab-button.active {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-bottom: 1px solid #fff;
-            margin-bottom: -1px;
-        }
-        .tab-content {
-            display: none;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-top: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .track-default {
-            margin-left: 10px;
-        }
+
         @media (max-width: 600px) {
-            .audio-track, .subtitle-track {
-                flex-direction: column;
-                align-items: flex-start;
+            .container {
+                padding: 15px;
             }
-            .track-language {
-                margin-top: 5px;
-            }
-            .remove-track {
-                margin-top: 5px;
-            }
-            .option-row {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .option-row label {
-                margin-bottom: 5px;
-            }
-            .tab-buttons {
-                flex-direction: column;
-            }
-            .tab-button.active {
-                border-bottom: 1px solid #ddd;
-                margin-bottom: 0;
+
+            button {
+                padding: 10px 15px;
             }
         }
     </style>
 </head>
 <body>
-    <h1>Muxer Vidéo, Audio et Sous-titres</h1>
+    <h1>Muxer Audio/Vidéo</h1>
+
     <div class="container">
-        <div class="section">
-            <div class="section-title">Sélectionner la vidéo MP4</div>
-            <input type="file" id="videoFile" class="file-input" accept="video/mp4">
-            <div id="videoInfo"></div>
+        <div class="input-group">
+            <label class="input-label" for="video-input">Sélectionner une vidéo MP4 (sans son)</label>
+            <input type="file" id="video-input" class="file-input" accept=".mp4">
         </div>
 
-        <div class="section">
-            <div class="tab-container">
-                <div class="tab-buttons">
-                    <button class="tab-button active" data-tab="audioTab">Pistes Audio</button>
-                    <button class="tab-button" data-tab="subtitleTab">Sous-titres</button>
-                </div>
-
-                <div id="audioTab" class="tab-content active">
-                    <div class="section-title">Sélectionner les pistes audio (M4A)</div>
-                    <input type="file" id="audioFile" class="file-input" accept="audio/x-m4a,audio/m4a,audio/aac">
-                    <button id="addAudio" class="add-track">Ajouter la piste audio</button>
-                    <div id="audioTracks"></div>
-                </div>
-
-                <div id="subtitleTab" class="tab-content">
-                    <div class="section-title">Sélectionner les sous-titres (SRT)</div>
-                    <input type="file" id="subtitleFile" class="file-input" accept=".srt">
-                    <button id="addSubtitle" class="add-track add-subtitle">Ajouter les sous-titres</button>
-                    <div id="subtitleTracks"></div>
-                </div>
-            </div>
+        <div class="input-group">
+            <label class="input-label" for="audio-input">Sélectionner un fichier audio M4A</label>
+            <input type="file" id="audio-input" class="file-input" accept=".m4a">
         </div>
 
-        <div class="section">
-            <div class="section-title">Fichier de sortie</div>
+        <button id="mux-btn" disabled>Combiner Audio et Vidéo</button>
 
-            <div id="optionsToggle">+ Options avancées</div>
+        <div class="progress-container" id="progress-container">
+            <div class="progress-bar" id="progress-bar">0%</div>
+        </div>
 
-            <div id="advancedOptions">
-                <div class="option-row">
-                    <label for="chunkSize">Taille du bloc de traitement:</label>
-                    <select id="chunkSize">
-                        <option value="524288">512 KB (mémoire limitée)</option>
-                        <option value="1048576" selected>1 MB (recommandé)</option>
-                        <option value="2097152">2 MB (rapide)</option>
-                        <option value="4194304">4 MB (très rapide)</option>
-                    </select>
-                </div>
-                <div class="option-row">
-                    <label for="workerEnabled">Utiliser Web Worker:</label>
-                    <input type="checkbox" id="workerEnabled" checked>
-                </div>
-                <div class="option-row">
-                    <label for="subtitleFontSize">Taille police sous-titres:</label>
-                    <input type="number" id="subtitleFontSize" value="16" min="8" max="32">
-                </div>
-            </div>
+        <div class="status" id="status"></div>
 
-            <input type="text" id="outputFilename" placeholder="Nom du fichier de sortie" value="output.mp4" style="width: 100%; padding: 8px; margin-bottom: 10px;">
-
-            <div class="buttons">
-                <button id="muxButton" class="btn btn-primary disabled">Fusionner les fichiers</button>
-                <button id="resetButton" class="btn btn-secondary">Réinitialiser</button>
-            </div>
-
-            <div class="progress-container" id="progressContainer">
-                <div class="progress-bar" id="progressBar">0%</div>
-            </div>
-
-            <div id="status"></div>
+        <div class="output-container" id="output-container">
+            <h3>Aperçu:</h3>
+            <video class="preview" id="preview" controls></video>
+            <button class="download-btn" id="download-btn">Télécharger la vidéo combinée</button>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/mp4box@0.5.2/dist/mp4box.all.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Cache DOM elements
-            const videoFileInput = document.getElementById('videoFile');
-            const audioFileInput = document.getElementById('audioFile');
-            const subtitleFileInput = document.getElementById('subtitleFile');
-            const addAudioButton = document.getElementById('addAudio');
-            const addSubtitleButton = document.getElementById('addSubtitle');
-            const audioTracksContainer = document.getElementById('audioTracks');
-            const subtitleTracksContainer = document.getElementById('subtitleTracks');
-            const muxButton = document.getElementById('muxButton');
-            const resetButton = document.getElementById('resetButton');
-            const videoInfoElement = document.getElementById('videoInfo');
-            const outputFilenameInput = document.getElementById('outputFilename');
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
+            const videoInput = document.getElementById('video-input');
+            const audioInput = document.getElementById('audio-input');
+            const muxButton = document.getElementById('mux-btn');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
             const statusElement = document.getElementById('status');
-            const optionsToggle = document.getElementById('optionsToggle');
-            const advancedOptions = document.getElementById('advancedOptions');
-            const chunkSizeSelect = document.getElementById('chunkSize');
-            const workerEnabledCheckbox = document.getElementById('workerEnabled');
-            const subtitleFontSizeInput = document.getElementById('subtitleFontSize');
-            const tabButtons = document.querySelectorAll('.tab-button');
-            const tabContents = document.querySelectorAll('.tab-content');
-
-            // Configuration des onglets
-            tabButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    // Désactiver tous les onglets
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    tabContents.forEach(content => content.classList.remove('active'));
-
-                    // Activer l'onglet cliqué
-                    this.classList.add('active');
-                    document.getElementById(this.dataset.tab).classList.add('active');
-                });
-            });
-
-            // Gestion des options avancées
-            optionsToggle.addEventListener('click', function() {
-                if (advancedOptions.style.display === 'block') {
-                    advancedOptions.style.display = 'none';
-                    optionsToggle.textContent = '+ Options avancées';
-                } else {
-                    advancedOptions.style.display = 'block';
-                    optionsToggle.textContent = '- Options avancées';
-                }
-            });
+            const outputContainer = document.getElementById('output-container');
+            const previewVideo = document.getElementById('preview');
+            const downloadButton = document.getElementById('download-btn');
 
             let videoFile = null;
-            let audioTracks = [];
-            let subtitleTracks = [];
-            let nextAudioTrackId = 1;
-            let nextSubtitleTrackId = 1;
+            let audioFile = null;
+            let outputBlob = null;
 
-            // Fragment d'audio track template pour optimiser le DOM
-            const audioTrackTemplate = document.createElement('template');
-            audioTrackTemplate.innerHTML = `
-                <div class="audio-track">
-                    <div class="track-info">
-                        <div class="track-name"></div>
-                        <div class="track-meta"></div>
-                    </div>
-                    <select class="track-language">
-                        <option value="und">Défaut</option>
-                        <option value="fra">Français</option>
-                        <option value="eng">Anglais</option>
-                        <option value="deu">Allemand</option>
-                        <option value="spa">Espagnol</option>
-                        <option value="ita">Italien</option>
-                        <option value="jpn">Japonais</option>
-                        <option value="kor">Coréen</option>
-                        <option value="cmn">Chinois</option>
-                        <option value="rus">Russe</option>
-                    </select>
-                    <div class="track-default">
-                        <input type="checkbox" class="is-default"> Par défaut
-                    </div>
-                    <button class="remove-track">Supprimer</button>
-                </div>
-            `;
-
-            // Template pour les sous-titres
-            const subtitleTrackTemplate = document.createElement('template');
-            subtitleTrackTemplate.innerHTML = `
-                <div class="subtitle-track">
-                    <div class="track-info">
-                        <div class="track-name"></div>
-                        <div class="track-meta"></div>
-                    </div>
-                    <select class="track-language">
-                        <option value="und">Défaut</option>
-                        <option value="fra">Français</option>
-                        <option value="eng">Anglais</option>
-                        <option value="deu">Allemand</option>
-                        <option value="spa">Espagnol</option>
-                        <option value="ita">Italien</option>
-                        <option value="jpn">Japonais</option>
-                        <option value="kor">Coréen</option>
-                        <option value="cmn">Chinois</option>
-                        <option value="rus">Russe</option>
-                    </select>
-                    <div class="track-default">
-                        <input type="checkbox" class="is-default"> Par défaut
-                    </div>
-                    <button class="remove-track">Supprimer</button>
-                </div>
-            `;
-
-            // Vérifier si la fusion est possible
-            function checkMuxingPossibility() {
-                if (videoFile && (audioTracks.length > 0 || subtitleTracks.length > 0)) {
-                    muxButton.classList.remove('disabled');
+            // Vérifier si les deux fichiers ont été sélectionnés
+            function checkInputs() {
+                if (videoFile && audioFile) {
+                    muxButton.disabled = false;
                 } else {
-                    muxButton.classList.add('disabled');
+                    muxButton.disabled = true;
                 }
             }
 
-            // Utiliser la mémoire efficacement avec l'API File
-            function createFileReader(file, onChunk, onComplete, chunkSize) {
-                const fileSize = file.size;
-                const reader = new FileReader();
-                let offset = 0;
-
-                reader.onload = function(e) {
-                    if (onChunk) {
-                        onChunk(e.target.result, offset, fileSize);
-                    }
-
-                    offset += e.target.result.byteLength;
-
-                    if (offset < fileSize) {
-                        readNextChunk();
-                    } else if (onComplete) {
-                        onComplete();
-                    }
-                };
-
-                function readNextChunk() {
-                    const slice = file.slice(offset, offset + chunkSize);
-                    reader.readAsArrayBuffer(slice);
-                }
-
-                // Start reading
-                readNextChunk();
-
-                return {
-                    cancel: function() {
-                        reader.abort();
-                    }
-                };
-            }
-
-            // Lire un fichier texte (pour les SRT)
-            function readFileAsText(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = e => resolve(e.target.result);
-                    reader.onerror = e => reject(e);
-                    reader.readAsText(file);
-                });
-            }
-
-            // Parser un fichier SRT
-            function parseSRT(srtContent) {
-                const subtitles = [];
-
-                // Normaliser les fins de ligne
-                const content = srtContent.replace(/\r\n|\r/g, '\n');
-
-                // Découper les blocs de sous-titres
-                const blocks = content.split('\n\n').filter(block => block.trim() !== '');
-
-                for (const block of blocks) {
-                    const lines = block.split('\n');
-
-                    // Ignorer les blocs trop courts
-                    if (lines.length < 3) continue;
-
-                    // Extraire le numéro de séquence (ignorer pour notre usage)
-                    // const sequenceNumber = parseInt(lines[0].trim());
-
-                    // Extraire le timeframe
-                    const timeframe = lines[1].trim();
-                    const times = timeframe.split(' --> ');
-
-                    if (times.length !== 2) continue;
-
-                    const startTime = parseTimeCode(times[0]);
-                    const endTime = parseTimeCode(times[1]);
-
-                    // Extraire le texte (peut être sur plusieurs lignes)
-                    const text = lines.slice(2).join('\n').trim();
-
-                    if (text && !isNaN(startTime) && !isNaN(endTime)) {
-                        subtitles.push({
-                            start: startTime,
-                            end: endTime,
-                            text: text
-                        });
-                    }
-                }
-
-                return subtitles;
-            }
-
-            // Convertir un timecode SRT en millisecondes
-            function parseTimeCode(timeCode) {
-                const pattern = /(\d{2}):(\d{2}):(\d{2}),(\d{3})/;
-                const match = timeCode.match(pattern);
-
-                if (!match) return NaN;
-
-                const hours = parseInt(match[1]);
-                const minutes = parseInt(match[2]);
-                const seconds = parseInt(match[3]);
-                const milliseconds = parseInt(match[4]);
-
-                return hours * 3600000 + minutes * 60000 + seconds * 1000 + milliseconds;
-            }
-
-            // Convertir des millisecondes en format WEBVTT
-            function formatVTTTime(ms) {
-                const date = new Date(ms);
-                const hours = date.getUTCHours().toString().padStart(2, '0');
-                const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-                const seconds = date.getUTCSeconds().toString().padStart(2, '0');
-                const milliseconds = date.getUTCMilliseconds().toString().padStart(3, '0');
-
-                return `${hours}:${minutes}:${seconds}.${milliseconds}`;
-            }
-
-            // Convertir SRT en WEBVTT
-            function convertSRTtoVTT(subtitles, fontSize) {
-                let vttContent = 'WEBVTT\n\n';
-
-                subtitles.forEach((subtitle, index) => {
-                    vttContent += `${index + 1}\n`;
-                    vttContent += `${formatVTTTime(subtitle.start)} --> ${formatVTTTime(subtitle.end)}\n`;
-
-                    // Appliquer le style du texte
-                    vttContent += `<c.subs style="font-size:${fontSize}px">${subtitle.text}</c>\n\n`;
-                });
-
-                return vttContent;
-            }
-
-            // Afficher les informations de la vidéo
-            videoFileInput.addEventListener('change', function(e) {
+            videoInput.addEventListener('change', function(e) {
                 if (e.target.files.length > 0) {
                     videoFile = e.target.files[0];
-                    videoInfoElement.innerHTML = `
-                        <div style="margin-top: 10px; padding: 10px; background-color: #f9f9f9; border-radius: 5px;">
-                            <strong>${videoFile.name}</strong> (${formatFileSize(videoFile.size)})
-                        </div>
-                    `;
-                    checkMuxingPossibility();
+                    checkInputs();
                 }
             });
 
-            // Ajouter une piste audio (optimisé)
-            addAudioButton.addEventListener('click', function() {
-                if (audioFileInput.files.length > 0) {
-                    const audioFile = audioFileInput.files[0];
-                    const trackId = nextAudioTrackId++;
-
-                    // Utiliser le template pour une meilleure performance
-                    const audioTrackFragment = document.importNode(audioTrackTemplate.content, true);
-                    const audioTrack = audioTrackFragment.querySelector('.audio-track');
-                    audioTrack.dataset.id = trackId;
-
-                    // Remplir les informations
-                    audioTrack.querySelector('.track-name').textContent = audioFile.name;
-                    audioTrack.querySelector('.track-meta').textContent = formatFileSize(audioFile.size);
-
-                    audioTracksContainer.appendChild(audioTrack);
-
-                    // Ajouter la piste à notre tableau
-                    audioTracks.push({
-                        id: trackId,
-                        file: audioFile,
-                        language: 'und', // langue par défaut
-                        default: false
-                    });
-
-                    // Effacer l'input pour permettre d'ajouter un autre fichier
-                    audioFileInput.value = '';
-
-                    checkMuxingPossibility();
-
-                    // Écouter le changement de langue (délégation d'événement)
-                    const langSelect = audioTrack.querySelector('.track-language');
-                    langSelect.addEventListener('change', function() {
-                        const trackIndex = audioTracks.findIndex(track => track.id === trackId);
-                        if (trackIndex !== -1) {
-                            audioTracks[trackIndex].language = langSelect.value;
-                        }
-                    });
-
-                    // Écouter le changement de piste par défaut
-                    const defaultCheckbox = audioTrack.querySelector('.is-default');
-                    defaultCheckbox.addEventListener('change', function() {
-                        const trackIndex = audioTracks.findIndex(track => track.id === trackId);
-                        if (trackIndex !== -1) {
-                            // Désactiver les autres pistes par défaut si celle-ci est cochée
-                            if (defaultCheckbox.checked) {
-                                audioTracks.forEach((track, idx) => {
-                                    if (idx !== trackIndex) {
-                                        track.default = false;
-                                    }
-                                });
-
-                                // Mettre à jour l'UI
-                                audioTracksContainer.querySelectorAll('.audio-track').forEach(trackElem => {
-                                    if (parseInt(trackElem.dataset.id) !== trackId) {
-                                        trackElem.querySelector('.is-default').checked = false;
-                                    }
-                                });
-                            }
-
-                            audioTracks[trackIndex].default = defaultCheckbox.checked;
-                        }
-                    });
-
-                    // Gérer la suppression (délégation d'événement)
-                    const removeButton = audioTrack.querySelector('.remove-track');
-                    removeButton.addEventListener('click', function() {
-                        audioTrack.remove();
-                        audioTracks = audioTracks.filter(track => track.id !== trackId);
-                        checkMuxingPossibility();
-                    });
+            audioInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    audioFile = e.target.files[0];
+                    checkInputs();
                 }
             });
 
-            // Ajouter des sous-titres
-            addSubtitleButton.addEventListener('click', function() {
-                if (subtitleFileInput.files.length > 0) {
-                    const subtitleFile = subtitleFileInput.files[0];
-                    const trackId = nextSubtitleTrackId++;
+            muxButton.addEventListener('click', function() {
+                if (!videoFile || !audioFile) {
+                    alert('Veuillez sélectionner les fichiers vidéo et audio');
+                    return;
+                }
 
-                    // Utiliser le template pour les sous-titres
-                    const subtitleTrackFragment = document.importNode(subtitleTrackTemplate.content, true);
-                    const subtitleTrack = subtitleTrackFragment.querySelector('.subtitle-track');
-                    subtitleTrack.dataset.id = trackId;
+                // Afficher la barre de progression
+                progressContainer.style.display = 'block';
+                statusElement.textContent = 'Préparation des fichiers...';
+                muxButton.disabled = true;
 
-                    // Remplir les informations
-                    subtitleTrack.querySelector('.track-name').textContent = subtitleFile.name;
-                    subtitleTrack.querySelector('.track-meta').textContent = formatFileSize(subtitleFile.size);
+                // Traiter les fichiers
+                muxFiles();
+            });
 
-                    // Auto-détecter la langue à partir du nom de fichier
-                    const langSelect = subtitleTrack.querySelector('.track-language');
-                    const filename = subtitleFile.name.toLowerCase();
-
-                    if (filename.includes('fr') || filename.includes('fra') || filename.includes('french')) {
-                        langSelect.value = 'fra';
-                    } else if (filename.includes('en') || filename.includes('eng') || filename.includes('english')) {
-                        langSelect.value = 'eng';
-                    } else if (filename.includes('de') || filename.includes('deu') || filename.includes('german')) {
-                        langSelect.value = 'deu';
-                    } else if (filename.includes('es') || filename.includes('spa') || filename.includes('spanish')) {
-                        langSelect.value = 'spa';
-                    } else if (filename.includes('it') || filename.includes('ita') || filename.includes('italian')) {
-                        langSelect.value = 'ita';
-                    } else if (filename.includes('jp') || filename.includes('jpn') || filename.includes('japanese')) {
-                        langSelect.value = 'jpn';
-                    }
-
-                    subtitleTracksContainer.appendChild(subtitleTrack);
-
-                    // Ajouter la piste de sous-titres à notre tableau
-                    subtitleTracks.push({
-                        id: trackId,
-                        file: subtitleFile,
-                        language: langSelect.value,
-                        default: false
-                    });
-
-                    // Effacer l'input pour permettre d'ajouter un autre fichier
-                    subtitleFileInput.value = '';
-
-                    checkMuxingPossibility();
-
-                    // Écouter le changement de langue
-                    langSelect.addEventListener('change', function() {
-                        const trackIndex = subtitleTracks.findIndex(track => track.id === trackId);
-                        if (trackIndex !== -1) {
-                            subtitleTracks[trackIndex].language = langSelect.value;
-                        }
-                    });
-
-                    // Écouter le changement de piste par défaut
-                    const defaultCheckbox = subtitleTrack.querySelector('.is-default');
-                    defaultCheckbox.addEventListener('change', function() {
-                        const trackIndex = subtitleTracks.findIndex(track => track.id === trackId);
-                        if (trackIndex !== -1) {
-                            // Désactiver les autres pistes par défaut si celle-ci est cochée
-                            if (defaultCheckbox.checked) {
-                                subtitleTracks.forEach((track, idx) => {
-                                    if (idx !== trackIndex) {
-                                        track.default = false;
-                                    }
-                                });
-
-                                // Mettre à jour l'UI
-                                subtitleTracksContainer.querySelectorAll('.subtitle-track').forEach(trackElem => {
-                                    if (parseInt(trackElem.dataset.id) !== trackId) {
-                                        trackElem.querySelector('.is-default').checked = false;
-                                    }
-                                });
-                            }
-
-                            subtitleTracks[trackIndex].default = defaultCheckbox.checked;
-                        }
-                    });
-
-                    // Gérer la suppression
-                    const removeButton = subtitleTrack.querySelector('.remove-track');
-                    removeButton.addEventListener('click', function() {
-                        subtitleTrack.remove();
-                        subtitleTracks = subtitleTracks.filter(track => track.id !== trackId);
-                        checkMuxingPossibility();
-                    });
+            downloadButton.addEventListener('click', function() {
+                if (outputBlob) {
+                    const url = URL.createObjectURL(outputBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'video_avec_audio.mp4';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
                 }
             });
 
-            // Formatter la taille du fichier
-            function formatFileSize(bytes) {
-                if (bytes < 1024) return bytes + ' bytes';
-                else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
-                else return (bytes / 1048576).toFixed(2) + ' MB';
-            }
-
-            // Mettre à jour la barre de progression
-            function updateProgress(percent, message = null) {
-                // Utiliser requestAnimationFrame pour optimiser les updates UI
-                requestAnimationFrame(() => {
-                    progressBar.style.width = percent + '%';
-                    progressBar.textContent = percent + '%';
-
-                    if (message) {
-                        statusElement.innerHTML = message;
-                    }
-                });
-            }
-
-            // Traiter le fichier vidéo
-            function processVideoFile(mp4boxfile, callback) {
-                const chunkSize = parseInt(chunkSizeSelect.value);
-
-                updateProgress(0, 'Lecture du fichier vidéo...');
-
-                createFileReader(
-                    videoFile,
-                    (chunk, offset, fileSize) => {
-                        mp4boxfile.appendBuffer(chunk);
-                        const percent = Math.min(35, Math.floor((offset / fileSize) * 35));
-                        updateProgress(percent);
-                    },
-                    () => {
-                        mp4boxfile.flush();
-                        updateProgress(35, 'Fichier vidéo traité.');
-                        callback();
-                    },
-                    chunkSize
-                );
-            }
-
-            // Traiter un fichier audio
-            async function processAudioFile(audioTrack, index, total, mp4boxfile) {
-                const chunkSize = parseInt(chunkSizeSelect.value);
-
-                return new Promise((resolve, reject) => {
-                    // Créer un fichier MP4Box temporaire pour ce fichier audio
-                    const tempFile = MP4Box.createFile();
-
-                    updateProgress(
-                        35 + Math.floor((index / total) * 40),
-                        `Traitement de la piste audio ${index + 1}/${total}...`
-                    );
-
-                    // Variable pour suivre si nous avons reçu les infos du fichier
-                    let gotInfo = false;
-                    let audioInfo = null;
-
-                    createFileReader(
-                        audioTrack.file,
-                        (chunk, offset, fileSize) => {
-                            tempFile.appendBuffer(chunk);
-
-                            // Essayer d'obtenir les informations si nous ne les avons pas encore
-                            if (!gotInfo && offset > 10000) { // Attendre suffisamment de données
-                                try {
-                                    tempFile.flush();
-                                    audioInfo = tempFile.getInfo();
-                                    gotInfo = true;
-                                } catch (e) {
-                                    // Pas assez de données, on continue
-                                }
-                            }
-
-                            const basePercent = 35 + Math.floor((index / total) * 40);
-                            const chunkPercent = Math.floor((offset / fileSize) * (40 / total));
-                            updateProgress(basePercent + chunkPercent);
-                        },
-                        async () => {
-                            try {
-                                tempFile.flush();
-
-                                if (!audioInfo) {
-                                    audioInfo = tempFile.getInfo();
-                                }
-
-                                if (audioInfo.tracks && audioInfo.tracks.length > 0) {
-                                    const audioTrackInfo = audioInfo.tracks[0];
-
-                                    // Extraire les samples
-                                    tempFile.setExtractionOptions(audioTrackInfo.id, null, { nbSamples: audioTrackInfo.nb_samples });
-
-                                    const samples = await new Promise((resolveSamples) => {
-                                        const allSamples = [];
-                                        tempFile.onSamples = (id, user, samples) => {
-                                            allSamples.push(...samples);
-                                        };
-
-                                        tempFile.start();
-
-                                        // Vérifier périodiquement si nous avons tous les échantillons
-                                        const checkSamples = () => {
-                                            if (allSamples.length >= audioTrackInfo.nb_samples) {
-                                                resolveSamples(allSamples);
-                                            } else {
-                                                setTimeout(checkSamples, 100);
-                                            }
-                                        };
-
-                                        checkSamples();
-                                    });
-
-                                    // Ajouter la piste avec la langue appropriée
-                                    const newTrackId = mp4boxfile.addTrack({
-                                        type: audioTrackInfo.codec,
-                                        codec: audioTrackInfo.codec,
-                                        language: audioTrack.language,
-                                        timescale: audioTrackInfo.timescale,
-                                        width: 0,
-                                        height: 0,
-                                        duration: audioTrackInfo.duration,
-                                        media_duration: audioTrackInfo.duration,
-                                        nb_samples: audioTrackInfo.nb_samples,
-                                        hdlr: 'soun',  // type audio
-                                        name: audioTrack.file.name.split('.')[0], // nom de la piste
-                                        alternate_group: 1, // groupe pour les pistes alternatives
-                                        enabled: true,
-                                        default: audioTrack.default
-                                    });
-
-                                    // Ajouter les échantillons par lots pour de meilleures performances
-                                    const batchSize = 100;
-                                    for (let i = 0; i < samples.length; i += batchSize) {
-                                        const batch = samples.slice(i, i + batchSize);
-                                        for (const sample of batch) {
-                                            mp4boxfile.addSample(newTrackId, sample.data, sample);
-                                        }
-
-                                        // Donner du temps au navigateur pour respirer
-                                        if (i % (batchSize * 5) === 0) {
-                                            await new Promise(r => setTimeout(r, 0));
-                                        }
-                                    }
-                                }
-
-                                resolve();
-                            } catch (error) {
-                                reject(error);
-                            }
-                        },
-                        chunkSize
-                    );
-                });
-            }
-
-            // Traitement des sous-titres
-            async function processSubtitles() {
-                if (subtitleTracks.length === 0) return [];
-
-                const processedSubtitles = [];
-                const fontSize = parseInt(subtitleFontSizeInput.value) || 16;
-
-                updateProgress(75, 'Traitement des sous-titres...');
-
-                for (let i = 0; i < subtitleTracks.length; i++) {
-                    const track = subtitleTracks[i];
-                    const srtContent = await readFileAsText(track.file);
-                    const subtitles = parseSRT(srtContent);
-
-                    if (subtitles.length === 0) continue;
-
-                    const vttContent = convertSRTtoVTT(subtitles, fontSize);
-                    const vttBlob = new Blob([vttContent], { type: 'text/vtt' });
-
-                    processedSubtitles.push({
-                        blob: vttBlob,
-                        language: track.language,
-                        default: track.default,
-                        label: track.file.name.split('.')[0] // Utiliser le nom du fichier comme label
-                    });
-
-                    // Mise à jour de la progression
-                    const percent = 75 + Math.floor((i + 1) / subtitleTracks.length * 10);
-                    updateProgress(percent);
-                }
-
-                return processedSubtitles;
-            }
-
-            // Action du bouton de fusion
-            muxButton.addEventListener('click', async function() {
-                if (muxButton.classList.contains('disabled')) return;
-
+            async function muxFiles() {
                 try {
-                    // Initialiser la progression
-                    progressContainer.style.display = 'block';
-                    statusElement.style.display = 'block';
-                    statusElement.innerHTML = 'Préparation des fichiers...';
-                    statusElement.style.backgroundColor = '#f1f1f1';
+                    // Lire les fichiers
+                    const videoArrayBuffer = await readFileAsArrayBuffer(videoFile);
+                    updateStatus('Lecture du fichier vidéo...', 20);
 
-                    // Désactiver les boutons pendant le traitement
-                    muxButton.classList.add('disabled');
-                    resetButton.classList.add('disabled');
+                    const audioArrayBuffer = await readFileAsArrayBuffer(audioFile);
+                    updateStatus('Lecture du fichier audio...', 40);
 
-                    // Obtenir les options
-                    const useWorker = workerEnabledCheckbox.checked;
-
-                    // Traiter d'abord les sous-titres
-                    const processedSubtitles = await processSubtitles();
-
-                    // Initialiser MP4Box avec ou sans worker
+                    // Utiliser MP4Box pour le muxing
                     const mp4boxfile = MP4Box.createFile();
 
-                    // Traiter la vidéo d'abord
-                    processVideoFile(mp4boxfile, async () => {
-                        try {
-                            // Traiter les pistes audio séquentiellement
-                            for (let i = 0; i < audioTracks.length; i++) {
-                                await processAudioFile(audioTracks[i], i, audioTracks.length, mp4boxfile);
-                            }
+                    // Traiter le fichier vidéo
+                    mp4boxfile.onReady = function(info) {
+                        updateStatus('Analyse de la vidéo...', 60);
 
-                            // Finaliser
-                            updateProgress(85, 'Finalisation du fichier...');
+                        // On extrait les pistes vidéo
+                        const videoTrack = info.tracks.find(track => track.type === 'video');
 
-                            // Utiliser un petit délai pour permettre au navigateur de mettre à jour l'UI
-                            setTimeout(() => {
-                                try {
-                                    const outputName = outputFilenameInput.value || 'output.mp4';
-
-                                    // Utiliser une approche de génération par segments pour les gros fichiers
-                                    const segments = [];
-                                    const segSize = 1024 * 1024 * 10; // 10MB par segment
-
-                                    // Générer les segments
-                                    for (let pos = 0; pos < mp4boxfile.size; pos += segSize) {
-                                        const segment = mp4boxfile.slice(pos, Math.min(pos + segSize, mp4boxfile.size));
-                                        segments.push(segment);
-                                    }
-
-                                    // Créer un nouveau Blob à partir des segments
-                                    const mainBlob = new Blob(segments, { type: 'video/mp4' });
-
-                                    if (processedSubtitles.length > 0) {
-                                        // Créer un élément vidéo temporaire
-                                        const tempVideo = document.createElement('video');
-                                        tempVideo.style.display = 'none';
-                                        document.body.appendChild(tempVideo);
-
-                                        // Créer le MediaSource
-                                        const mediaSource = new MediaSource();
-                                        tempVideo.src = URL.createObjectURL(mediaSource);
-
-                                        mediaSource.addEventListener('sourceopen', async function() {
-                                            try {
-                                                // Ajouter le fichier vidéo principal
-                                                const videoSourceBuffer = mediaSource.addSourceBuffer('video/mp4');
-
-                                                // Charger le Blob dans le SourceBuffer
-                                                const arrayBuffer = await mainBlob.arrayBuffer();
-                                                videoSourceBuffer.appendBuffer(arrayBuffer);
-
-                                                // Attendre que le buffer soit mis à jour
-                                                videoSourceBuffer.addEventListener('updateend', function() {
-                                                    try {
-                                                        // Ajouter les pistes de sous-titres
-                                                        processedSubtitles.forEach(subtitle => {
-                                                            const track = tempVideo.addTextTrack('subtitles', subtitle.label, subtitle.language);
-                                                            track.mode = subtitle.default ? 'showing' : 'hidden';
-
-                                                            // Créer un URL pour le VTT
-                                                            const vttUrl = URL.createObjectURL(subtitle.blob);
-
-                                                            // Créer un élément de piste
-                                                            const trackElem = document.createElement('track');
-                                                            trackElem.kind = 'subtitles';
-                                                            trackElem.label = subtitle.label;
-                                                            trackElem.srclang = subtitle.language;
-                                                            trackElem.src = vttUrl;
-                                                            trackElem.default = subtitle.default;
-
-                                                            tempVideo.appendChild(trackElem);
-                                                        });
-
-                                                        // Récupérer le blob final avec les sous-titres
-                                                        const finalBlob = new Blob([mainBlob], { type: 'video/mp4' });
-
-                                                        // Créer un lien de téléchargement
-                                                        const downloadLink = document.createElement('a');
-                                                        downloadLink.href = URL.createObjectURL(finalBlob);
-                                                        downloadLink.download = outputName;
-
-                                                        updateProgress(100, 'Fusion terminée avec succès! Téléchargement en cours...');
-                                                        statusElement.style.backgroundColor = '#dff0d8';
-
-                                                        // Télécharger automatiquement
-                                                        downloadLink.click();
-
-                                                        // Nettoyer
-                                                        setTimeout(() => {
-                                                            URL.revokeObjectURL(downloadLink.href);
-                                                            processedSubtitles.forEach(subtitle => {
-                                                                URL.revokeObjectURL(subtitle.blob);
-                                                            });
-                                                            document.body.removeChild(tempVideo);
-                                                        }, 1000);
-
-                                                        // Activer le bouton de réinitialisation
-                                                        resetButton.classList.remove('disabled');
-                                                    } catch (error) {
-                                                        console.error('Erreur lors de l\'ajout des sous-titres:', error);
-                                                        handleError(error);
-                                                    }
-                                                }, { once: true });
-                                            } catch (error) {
-                                                console.error('Erreur MediaSource:', error);
-                                                handleError(error);
-                                            }
-                                        });
-                                    } else {
-                                        // Pas de sous-titres, télécharger directement
-                                        const downloadLink = document.createElement('a');
-                                        downloadLink.href = URL.createObjectURL(mainBlob);
-                                        downloadLink.download = outputName;
-
-                                        updateProgress(100, 'Fusion terminée avec succès! Téléchargement en cours...');
-                                        statusElement.style.backgroundColor = '#dff0d8';
-
-                                        // Télécharger automatiquement
-                                        downloadLink.click();
-
-                                        // Libérer la mémoire
-                                        setTimeout(() => {
-                                            URL.revokeObjectURL(downloadLink.href);
-                                        }, 1000);
-
-                                        // Activer le bouton de réinitialisation
-                                        resetButton.classList.remove('disabled');
-                                    }
-                                } catch (error) {
-                                    handleError(error);
-                                }
-                            }, 100);
-
-                        } catch (error) {
-                            handleError(error, 'Erreur lors du traitement des pistes audio');
+                        if (!videoTrack) {
+                            throw new Error('Aucune piste vidéo trouvée dans le fichier MP4');
                         }
-                    });
+
+                        // Maintenant traiter l'audio
+                        processAudio(videoArrayBuffer, videoTrack, audioArrayBuffer);
+                    };
+
+                    mp4boxfile.onError = function(e) {
+                        showError('Erreur lors de l\'analyse de la vidéo: ' + e);
+                    };
+
+                    // Charger le fichier vidéo dans MP4Box
+                    const fileSize = videoArrayBuffer.byteLength;
+                    const step = 1024 * 1024; // 1MB chunks
+
+                    for (let offset = 0; offset < fileSize; offset += step) {
+                        const chunk = videoArrayBuffer.slice(offset, Math.min(offset + step, fileSize));
+                        mp4boxfile.appendBuffer(chunk);
+                    }
+
+                    mp4boxfile.flush();
 
                 } catch (error) {
-                    handleError(error, 'Erreur générale');
+                    showError('Erreur: ' + error.message);
                 }
-            });
-
-            // Gérer les erreurs
-            function handleError(error, prefix = '') {
-                const errorMessage = prefix ? `${prefix}: ${error.message}` : error.message;
-                updateProgress(100, 'Erreur: ' + errorMessage);
-                statusElement.style.backgroundColor = '#f2dede';
-                resetButton.classList.remove('disabled');
-                console.error(error);
             }
 
-            // Action du bouton de réinitialisation
-            resetButton.addEventListener('click', function() {
-                videoFile = null;
-                audioTracks = [];
-                subtitleTracks = [];
-                nextAudioTrackId = 1;
-                nextSubtitleTrackId = 1;
+            async function processAudio(videoArrayBuffer, videoTrack, audioArrayBuffer) {
+                try {
+                    updateStatus('Analyse de l\'audio...', 70);
 
-                videoFileInput.value = '';
-                audioFileInput.value = '';
-                subtitleFileInput.value = '';
-                videoInfoElement.innerHTML = '';
-                audioTracksContainer.innerHTML = '';
-                subtitleTracksContainer.innerHTML = '';
-                outputFilenameInput.value = 'output.mp4';
+                    // Créer un nouveau fichier MP4
+                    const outputFile = MP4Box.createFile();
 
-                progressContainer.style.display = 'none';
-                progressBar.style.width = '0%';
-                progressBar.textContent = '0%';
+                    // Ajouter la piste vidéo
+                    const videoBuffer = new Uint8Array(videoArrayBuffer);
+                    outputFile.appendBuffer(videoBuffer);
 
-                statusElement.style.display = 'none';
-                statusElement.innerHTML = '';
+                    updateStatus('Extraction des pistes...', 80);
 
-                muxButton.classList.add('disabled');
-                resetButton.classList.remove('disabled');
-            });
+                    // Analyser le fichier audio pour extraire la piste audio
+                    const audioFile = MP4Box.createFile();
+
+                    audioFile.onReady = function(info) {
+                        const audioTrack = info.tracks.find(track => track.type === 'audio');
+
+                        if (!audioTrack) {
+                            throw new Error('Aucune piste audio trouvée dans le fichier M4A');
+                        }
+
+                        updateStatus('Combinaison des pistes...', 90);
+
+                        // Créer un nouveau fichier avec les deux pistes
+                        const finalFile = MP4Box.createFile();
+
+                        // Ajouter les pistes au fichier final
+                        finalFile.addTrack(videoTrack);
+                        finalFile.addTrack(audioTrack);
+
+                        // Générer le fichier MP4 final
+                        const finalArrayBuffer = finalFile.getBuffer();
+                        outputBlob = new Blob([finalArrayBuffer], { type: 'video/mp4' });
+
+                        // Afficher le résultat
+                        updateStatus('Terminé!', 100);
+
+                        // Afficher la vidéo combinée
+                        const url = URL.createObjectURL(outputBlob);
+                        previewVideo.src = url;
+                        outputContainer.style.display = 'block';
+                    };
+
+                    audioFile.onError = function(e) {
+                        showError('Erreur lors de l\'analyse de l\'audio: ' + e);
+                    };
+
+                    // Charger le fichier audio
+                    const audioSize = audioArrayBuffer.byteLength;
+                    const step = 1024 * 1024; // 1MB chunks
+
+                    for (let offset = 0; offset < audioSize; offset += step) {
+                        const chunk = audioArrayBuffer.slice(offset, Math.min(offset + step, audioSize));
+                        audioFile.appendBuffer(chunk);
+                    }
+
+                    audioFile.flush();
+
+                } catch (error) {
+                    showError('Erreur: ' + error.message);
+                }
+            }
+
+            function readFileAsArrayBuffer(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('Erreur lors de la lecture du fichier'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            function updateStatus(message, progress) {
+                statusElement.textContent = message;
+                progressBar.style.width = progress + '%';
+                progressBar.textContent = progress + '%';
+            }
+
+            function showError(message) {
+                statusElement.textContent = message;
+                statusElement.style.color = 'red';
+                muxButton.disabled = false;
+            }
         });
     </script>
 </body>
 </html>
-
 
