@@ -1,367 +1,111 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Muxer MP4 sans réencodage</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-color: #f5f5f5;
-            color: #333;
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-            line-height: 1.6;
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #2c3e50;
-        }
-
-        .container {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        .input-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-
-        .file-input {
-            width: 100%;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 10px;
-            width: 100%;
-            transition: background-color 0.3s;
-        }
-
-        button:hover {
-            background-color: #2980b9;
-        }
-
-        button:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-        }
-
-        .status {
-            margin-top: 15px;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-            font-style: italic;
-            text-align: center;
-        }
-
-        .preview-section {
-            margin-top: 20px;
-            display: none;
-        }
-
-        .preview-video {
-            width: 100%;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            background-color: #000;
-        }
-
-        .download-btn {
-            background-color: #27ae60;
-        }
-
-        .download-btn:hover {
-            background-color: #2ecc71;
-        }
-
-        .log {
-            margin-top: 15px;
-            max-height: 150px;
-            overflow-y: auto;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 12px;
-            white-space: pre-wrap;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 15px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Fusion MP4 + M4A + SRT</title>
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.5/dist/ffmpeg.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; max-width: 600px; margin: auto; }
+    input[type="file"] { margin-bottom: 1rem; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; }
+    #log { white-space: pre-wrap; font-size: 0.8rem; background: #eee; padding: 1rem; margin-top: 1rem; }
+  </style>
 </head>
 <body>
-    <h1>Muxer MP4 sans réencodage</h1>
+  <h1>Fusionner MP4 + M4A + SRT (sans réencodage)</h1>
 
-    <div class="container">
-        <div class="input-group">
-            <label class="input-label" for="video-input">Vidéo MP4 (sans son)</label>
-            <input type="file" id="video-input" class="file-input" accept="video/mp4">
-        </div>
+  <label>Vidéo MP4 (sans audio) :
+    <input type="file" id="mp4Input" accept=".mp4">
+  </label><br>
 
-        <div class="input-group">
-            <label class="input-label" for="audio-input">Audio M4A</label>
-            <input type="file" id="audio-input" class="file-input" accept="audio/m4a,audio/x-m4a">
-        </div>
+  <label>Audio M4A (1 ou plusieurs) :
+    <input type="file" id="audioInputs" accept=".m4a" multiple>
+  </label><br>
 
-        <button id="process-btn" disabled>Combiner Audio et Vidéo</button>
+  <label>Sous-titres SRT (optionnels) :
+    <input type="file" id="subtitleInput" accept=".srt">
+  </label><br>
 
-        <div class="status" id="status">Sélectionnez les fichiers vidéo et audio à combiner</div>
+  <button id="mergeBtn">Fusionner</button>
 
-        <div class="log" id="log"></div>
+  <div id="log"></div>
 
-        <div class="preview-section" id="preview-section">
-            <h3>Aperçu de la vidéo combinée :</h3>
-            <video id="preview-video" class="preview-video" controls></video>
-            <button id="download-btn" class="download-btn">Télécharger la vidéo</button>
-        </div>
-    </div>
+  <script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+    const logDiv = document.getElementById('log');
 
-    <script src="https://cdn.jsdelivr.net/npm/mp4box@0.5.2/dist/mp4box.all.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Éléments DOM
-            const videoInput = document.getElementById('video-input');
-            const audioInput = document.getElementById('audio-input');
-            const processBtn = document.getElementById('process-btn');
-            const statusElement = document.getElementById('status');
-            const logElement = document.getElementById('log');
-            const previewSection = document.getElementById('preview-section');
-            const previewVideo = document.getElementById('preview-video');
-            const downloadBtn = document.getElementById('download-btn');
+    function log(msg) {
+      console.log(msg);
+      logDiv.textContent += msg + "\n";
+    }
 
-            // Variables pour stocker les fichiers et blobs
-            let videoFile = null;
-            let audioFile = null;
-            let outputBlob = null;
+    document.getElementById('mergeBtn').onclick = async () => {
+      const mp4File = document.getElementById('mp4Input').files[0];
+      const audioFiles = document.getElementById('audioInputs').files;
+      const subtitleFile = document.getElementById('subtitleInput').files[0];
 
-            // Fonction pour logger les messages
-            function log(message) {
-                console.log(message);
-                logElement.textContent += message + '\n';
-                logElement.scrollTop = logElement.scrollHeight;
-            }
+      if (!mp4File || audioFiles.length === 0) {
+        alert("Merci de fournir une vidéo MP4 sans audio + au moins un fichier audio M4A.");
+        return;
+      }
 
-            // Fonction pour vérifier si les deux fichiers sont sélectionnés
-            function checkInputs() {
-                if (videoFile && audioFile) {
-                    processBtn.disabled = false;
-                } else {
-                    processBtn.disabled = true;
-                }
-            }
+      logDiv.textContent = "Chargement FFmpeg...";
+      if (!ffmpeg.isLoaded()) await ffmpeg.load();
 
-            // Écouteurs d'événements pour les inputs de fichiers
-            videoInput.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    videoFile = e.target.files[0];
-                    updateStatus(`Vidéo sélectionnée: ${videoFile.name}`);
-                    checkInputs();
-                }
-            });
+      // Charger fichiers
+      log("Chargement des fichiers...");
+      ffmpeg.FS('writeFile', 'video.mp4', await fetchFile(mp4File));
 
-            audioInput.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    audioFile = e.target.files[0];
-                    updateStatus(`Audio sélectionné: ${audioFile.name}`);
-                    checkInputs();
-                }
-            });
+     const audioNames = [];
+      for (let i = 0; i < audioFiles.length; i++) {
+        const name = `audio${i}.m4a`;
+        ffmpeg.FS('writeFile', name, await fetchFile(audioFiles[i]));
+        audioNames.push(name);
+      }
 
-            // Écouteur d'événement pour le bouton de traitement
-            processBtn.addEventListener('click', async function() {
-                try {
-                    processBtn.disabled = true;
-                    updateStatus('Traitement en cours...');
-                    logElement.textContent = '';
+      if (subtitleFile) {
+        ffmpeg.FS('writeFile', 'subs.srt', await fetchFile(subtitleFile));
+      }
 
-                    // Lire les fichiers en tant qu'ArrayBuffer
-                    log('Lecture des fichiers...');
-                    const videoBuffer = await readFileAsArrayBuffer(videoFile);
-                    const audioBuffer = await readFileAsArrayBuffer(audioFile);
+      // Créer une commande FFmpeg pour fusionner sans réencodage
+      log("Fusion en cours...");
 
-                    log('Analyse du fichier vidéo...');
-                    const videoInfo = await analyzeMP4(videoBuffer, 'video');
+      const args = [
+        '-i', 'video.mp4',
+        ...audioNames.flatMap(name => ['-i', name]),
+      ];
 
-                    log('Analyse du fichier audio...');
-                    const audioInfo = await analyzeMP4(audioBuffer, 'audio');
+      const mapArgs = ['-map', '0:v:0'];
+      for (let i = 0; i < audioNames.length; i++) {
+        mapArgs.push('-map', `${i + 1}:a:0`);
+      }
 
-                    log('Extraction des pistes...');
-                    const videoTrack = videoInfo.tracks.find(track => track.type === 'video');
-                    const audioTrack = audioInfo.tracks.find(track => track.type === 'audio');
+      if (subtitleFile) {
+        args.push('-i', 'subs.srt');
+        mapArgs.push('-map', `${audioNames.length + 1}:s:0`);
+        args.push('-c:s', 'mov_text'); // MP4-compatible subtitles
+      }
 
-                    if (!videoTrack) {
-                        throw new Error('Aucune piste vidéo trouvée dans le fichier MP4');
-                    }
+      const fullArgs = [
+        ...args,
+        ...mapArgs,
+        '-c:v', 'copy',
+        '-c:a', 'copy',
+        'output.mp4'
+      ];
 
-                    if (!audioTrack) {
-                        throw new Error('Aucune piste audio trouvée dans le fichier M4A');
-                    }
+      await ffmpeg.run(...fullArgs);
+      log("Fusion terminée. Génération du fichier...");
 
-                    log(`Piste vidéo: ${videoTrack.codec}, ${videoTrack.video.width}x${videoTrack.video.height}`);
-                    log(`Piste audio: ${audioTrack.codec}, ${audioTrack.audio.sample_rate}Hz, ${audioTrack.audio.channel_count} canaux`);
-
-                    // Créer un nouveau MP4
-                    log('Création du fichier MP4 combiné...');
-                    const mergedBuffer = await mergeTracks(videoBuffer, audioBuffer, videoTrack, audioTrack);
-
-                    // Créer le blob final
-                    outputBlob = new Blob([mergedBuffer], { type: 'video/mp4' });
-
-                    // Créer URL pour la prévisualisation
-                    const url = URL.createObjectURL(outputBlob);
-                    previewVideo.src = url;
-                    previewSection.style.display = 'block';
-
-                    // Mettre à jour le statut
-                    updateStatus('Traitement terminé ! Vous pouvez prévisualiser et télécharger la vidéo.');
-                    log('Muxing terminé avec succès.');
-
-                } catch (error) {
-                    console.error('Erreur:', error);
-                    log(`ERREUR: ${error.message}`);
-                    updateStatus('Erreur: ' + error.message, true);
-                } finally {
-                    processBtn.disabled = false;
-                }
-            });
-
-            // Écouteur d'événement pour le bouton de téléchargement
-            downloadBtn.addEventListener('click', function() {
-                if (outputBlob) {
-                    const url = URL.createObjectURL(outputBlob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'video_combinee.mp4';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }
-            });
-
-            // Fonction pour lire un fichier en tant qu'ArrayBuffer
-            function readFileAsArrayBuffer(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = () => reject(new Error(`Erreur lors de la lecture du fichier ${file.name}`));
-                    reader.readAsArrayBuffer(file);
-                });
-            }
-
-            // Fonction pour analyser un fichier MP4
-            function analyzeMP4(buffer, type) {
-                return new Promise((resolve, reject) => {
-                    const mp4boxfile = MP4Box.createFile();
-
-                    mp4boxfile.onReady = function(info) {
-                        resolve(info);
-                    };
-
-                    mp4boxfile.onError = function(e) {
-                        reject(new Error(`Erreur lors de l'analyse du fichier ${type}: ${e}`));
-                    };
-
-                    // Charger le fichier dans MP4Box
-                    mp4boxfile.arrayBuffer = buffer;
-                    mp4boxfile.process();
-                });
-            }
-
-            // Fonction pour fusionner les pistes
-            async function mergeTracks(videoBuffer, audioBuffer, videoTrack, audioTrack) {
-                return new Promise((resolve, reject) => {
-                    try {
-                        // Créer un nouveau fichier MP4
-                        const mergedFile = MP4Box.createFile();
-
-                        // Cloner les pistes pour le nouveau fichier
-                        const mp4VideoFile = MP4Box.createFile();
-                        mp4VideoFile.arrayBuffer = videoBuffer;
-                        mp4VideoFile.init();
-                        mp4VideoFile.onReady = function() {
-                            const videoTracks = mp4VideoFile.getTrackById(videoTrack.id);
-                            if (videoTracks) {
-                                log('Ajout de la piste vidéo au nouveau fichier...');
-                                // Ajouter la piste vidéo au nouveau fichier
-                                mergedFile.addTrack(videoTracks);
-
-                                // Maintenant, ajouter la piste audio
-                                const mp4AudioFile = MP4Box.createFile();
-                                mp4AudioFile.arrayBuffer = audioBuffer;
-                                mp4AudioFile.init();
-                                mp4AudioFile.onReady = function() {
-                                    const audioTracks = mp4AudioFile.getTrackById(audioTrack.id);
-                                    if (audioTracks) {
-                                        log('Ajout de la piste audio au nouveau fichier...');
-                                        // Ajouter la piste audio au nouveau fichier
-                                        mergedFile.addTrack(audioTracks);
-
-                                        log('Finalisation du fichier MP4...');
-                                        // Générer le fichier final
-                                        const finalBuffer = mergedFile.getBuffer();
-                                        resolve(finalBuffer);
-                                    } else {
-                                        reject(new Error('Impossible d\'extraire la piste audio'));
-                                    }
-                                };
-                                mp4AudioFile.onError = function(e) {
-                                    reject(new Error(`Erreur lors de l'extraction de la piste audio: ${e}`));
-                                };
-                                mp4AudioFile.process();
-                            } else {
-                                reject(new Error('Impossible d\'extraire la piste vidéo'));
-                            }
-                        };
-                        mp4VideoFile.onError = function(e) {
-                            reject(new Error(`Erreur lors de l'extraction de la piste vidéo: ${e}`));
-                        };
-                        mp4VideoFile.process();
-                    } catch (e) {
-                        reject(new Error(`Erreur lors de la fusion des pistes: ${e.message}`));
-                    }
-                });
-            }
-
-            // Fonction pour mettre à jour le statut
-            function updateStatus(message, isError = false) {
-                statusElement.textContent = message;
-                statusElement.style.color = isError ? 'red' : '#333';
-            }
-        });
-    </script>
+      const data = ffmpeg.FS('readFile', 'output.mp4');
+      const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'fusion.mp4';
+      a.textContent = 'Télécharger le fichier fusionné';
+      document.body.appendChild(a);
+    };
+  </script>
 </body>
 </html>
