@@ -1,112 +1,74 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Fusion MP4 + M4A + SRT</title>
-  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.5/dist/ffmpeg.min.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 1rem; max-width: 600px; margin: auto; }
-    input[type="file"] { margin-bottom: 1rem; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; }
-    #log { white-space: pre-wrap; font-size: 0.8rem; background: #eee; padding: 1rem; margin-top: 1rem; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mixeur MKV Client-side</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Fusionner MP4 + M4A + SRT (sans réencodage)</h1>
+    <div class="container">
+        <h1>Mixeur MKV Client-side</h1>
+        <p class="description">
+            Combinez des fichiers MP4 (vidéo), M4A (audio) et SRT (sous-titres) en un seul fichier MKV.<br>
+            Tout le traitement se fait dans votre navigateur, sans re-encodage.
+        </p>
 
-  <label>Vidéo MP4 (sans audio) :
-    <input type="file" id="mp4Input" accept=".mp4">
-  </label><br>
+        <div class="file-inputs">
+            <div class="input-group">
+                <label for="videoFile">Fichier Vidéo (MP4):</label>
+                <input type="file" id="videoFile" accept=".mp4,.MP4">
+            </div>
 
-  <label>Audio M4A (1 ou plusieurs) :
-    <input type="file" id="audioInputs" accept=".m4a" multiple>
-  </label><br>
+            <div class="input-group">
+                <label for="audioFile">Fichier Audio (M4A):</label>
+                <input type="file" id="audioFile" accept=".m4a,.M4A">
+            </div>
 
-  <label>Sous-titres SRT (optionnels) :
-    <input type="file" id="subtitleInput" accept=".srt">
-  </label><br>
+            <div class="input-group">
+                <label for="subtitleFile">Fichier Sous-titres (SRT):</label>
+                <input type="file" id="subtitleFile" accept=".srt,.SRT">
+            </div>
+        </div>
 
-  <button id="mergeBtn">Fusionner</button>
+        <div class="options">
+            <label for="outputName">Nom du fichier de sortie:</label>
+            <input type="text" id="outputName" value="output.mkv">
 
-  <div id="log"></div>
+            <label for="language">Langue audio/sous-titres:</label>
+            <select id="language">
+                <option value="fr">Français</option>
+                <option value="en">Anglais</option>
+                <option value="es">Espagnol</option>
+                <option value="de">Allemand</option>
+                <option value="ja">Japonais</option>
+                <option value="other">Autre</option>
+            </select>
+        </div>
 
-  <script>
-    const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ log: true });
-    const logDiv = document.getElementById('log');
+        <button id="processBtn" disabled>Créer le fichier MKV</button>
 
-    function log(msg) {
-      console.log(msg);
-      logDiv.textContent += msg + "\n";
-    }
+        <div id="status" class="status hidden">
+            <div class="progress-container">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+            <p id="statusText">Prêt</p>
+        </div>
 
-    document.getElementById('mergeBtn').onclick = async () => {
-      const mp4File = document.getElementById('mp4Input').files[0];
-      const audioFiles = document.getElementById('audioInputs').files;
-      const subtitleFile = document.getElementById('subtitleInput').files[0];
+        <div id="error" class="error hidden"></div>
 
-      if (!mp4File || audioFiles.length === 0) {
-        alert("Merci de fournir une vidéo MP4 sans audio + au moins un fichier audio M4A.");
-        return;
-      }
+        <div class="info">
+            <h2>Comment ça marche?</h2>
+            <ul>
+                <li>Les fichiers ne sont pas ré-encodés, donc le processus est rapide</li>
+                <li>Tout se passe dans votre navigateur - aucun serveur n'est utilisé</li>
+                <li>Le résultat est un fichier MKV contenant vos flux multimédia</li>
+                <li>Fonctionne mieux sur Chrome, Edge ou Firefox récents</li>
+            </ul>
+        </div>
+    </div>
 
-      logDiv.textContent = "Chargement FFmpeg...";
-      if (!ffmpeg.isLoaded()) await ffmpeg.load();
-
-      // Charger fichiers
-      log("Chargement des fichiers...");
-      ffmpeg.FS('writeFile', 'video.mp4', await fetchFile(mp4File));
-
-     const audioNames = [];
-      for (let i = 0; i < audioFiles.length; i++) {
-        const name = `audio${i}.m4a`;
-        ffmpeg.FS('writeFile', name, await fetchFile(audioFiles[i]));
-        audioNames.push(name);
-      }
-
-      if (subtitleFile) {
-        ffmpeg.FS('writeFile', 'subs.srt', await fetchFile(subtitleFile));
-      }
-
-      // Créer une commande FFmpeg pour fusionner sans réencodage
-      log("Fusion en cours...");
-
-      const args = [
-        '-i', 'video.mp4',
-        ...audioNames.flatMap(name => ['-i', name]),
-      ];
-
-      const mapArgs = ['-map', '0:v:0'];
-      for (let i = 0; i < audioNames.length; i++) {
-        mapArgs.push('-map', `${i + 1}:a:0`);
-      }
-
-      if (subtitleFile) {
-        args.push('-i', 'subs.srt');
-        mapArgs.push('-map', `${audioNames.length + 1}:s:0`);
-        args.push('-c:s', 'mov_text'); // MP4-compatible subtitles
-      }
-
-      const fullArgs = [
-        ...args,
-        ...mapArgs,
-        '-c:v', 'copy',
-        '-c:a', 'copy',
-        'output.mp4'
-      ];
-
-      await ffmpeg.run(...fullArgs);
-      log("Fusion terminée. Génération du fichier...");
-
-      const data = ffmpeg.FS('readFile', 'output.mp4');
-      const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'fusion.mp4';
-      a.textContent = 'Télécharger le fichier fusionné';
-      document.body.appendChild(a);
-    };
-  </script>
+    <script src="https://cdn.jsdelivr.net/npm/mux.js@latest/dist/mux.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
- 
